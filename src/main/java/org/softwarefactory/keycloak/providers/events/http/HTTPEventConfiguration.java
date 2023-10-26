@@ -19,6 +19,8 @@ package org.softwarefactory.keycloak.providers.events.http;
 
 import org.keycloak.Config.Scope;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -59,6 +61,25 @@ public class HTTPEventConfiguration {
 		System.out.println("HTTPEventListener configuration: " + variableName + "=" + value);
 		return value;
 		
+	}
+
+	public static String mergeUserDetails(
+		String notificationAsString, String email, String fullName, boolean isPretty
+	) {
+		try{
+			JsonNode notificationNode =
+				HTTPEventConfiguration.httpEventConfigurationObjectMapper.readTree(
+					notificationAsString
+				);
+
+			((ObjectNode) notificationNode).put("userEmail", email);
+			((ObjectNode) notificationNode).put("userFullName", fullName);
+
+			return HTTPEventConfiguration.writeAsJson(notificationNode, isPretty);
+		} catch (JsonProcessingException e) {
+        	e.printStackTrace();
+			return "unparsable";
+    	}
 	}
 
 	public static String writeAsJson(Object object, boolean isPretty) {

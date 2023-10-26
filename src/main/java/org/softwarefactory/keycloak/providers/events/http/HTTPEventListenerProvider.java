@@ -27,6 +27,8 @@ import org.keycloak.events.EventType;
 import org.keycloak.events.admin.AdminEvent;
 import org.keycloak.events.admin.OperationType;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.RealmModel;
+import org.keycloak.models.UserModel;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -84,13 +86,27 @@ public class HTTPEventListenerProvider implements EventListenerProvider {
     public void publishEvent(Event event) {
         ClientEventNotification notification = ClientEventNotification.create(event);
         String notificationAsString = HTTPEventConfiguration.writeAsJson(notification, false);
-        this.sendEvent(notificationAsString);
+        String finalNotificationAsString = notificationAsString;
+
+        if (event.getType().equals(EventType.UPDATE_PROFILE)) {
+            RealmModel realm = this.session.getContext().getRealm();
+            UserModel user = this.session.users().getUserById(realm, event.getUserId());
+
+            finalNotificationAsString = HTTPEventConfiguration.mergeUserDetails(
+                notificationAsString,
+                user.getEmail(),
+                user.getFirstName() + " " + user.getLastName(),
+                false
+            );
+
+            this.sendEvent(finalNotificationAsString);
+        }
     }
 
     public void publishAdminEvent(AdminEvent event, boolean includeRepresentation) {
-        AdminEventNotification notification = AdminEventNotification.create(event);
-        String notificationAsString = HTTPEventConfiguration.writeAsJson(notification, false);
-        this.sendEvent(notificationAsString);
+        // AdminEventNotification notification = AdminEventNotification.create(event);
+        // String notificationAsString = HTTPEventConfiguration.writeAsJson(notification, false);
+        // this.sendEvent(notificationAsString);
     }
 
     private void sendEvent(String event) {
